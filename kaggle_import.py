@@ -1,14 +1,13 @@
-import psycpg2
+import psycopg2
 import csv
 
-# Ваші дані для підключення
-username = ''
-password = ''
-database = ''
+username = 'postgres'
+password = 'postgres'
+database = 'lab_3_6'
 host = 'localhost'
 port = '5432'
 
-CSV_MOVIES_FILE = 'Movies.csv'
+CSV_MOVIES_FILE = 'MoviesAndShows.csv'
 CSV_WEEKS_FILE = 'Weeks.csv'
 CSV_COUNTRIES_FILE = 'Countries.csv'
 CSV_RATINGS_FILE = 'Ratings.csv'
@@ -28,40 +27,53 @@ query_3 = '''
 '''
 
 query_4 = '''
-    DELETE FROM MoviesAndShows;
+    DELETE FROM Ratings;
 '''
 query_5 = '''
-    DELETE FROM Weeks;
+    DELETE FROM MoviesAndShows;
 '''
 query_6 = '''
+    DELETE FROM Weeks;
+'''
+query_7 = '''
     DELETE FROM Countries;
 '''
 
-queries = (query_1, query_2, query_3)
+queries = (query_4, query_5, query_6, query_7)
+
+conn = None
+cur = None
 
 try:
     conn = psycopg2.connect(user=username, password=password, dbname=database, host=host, port=port)
-    with conn:
-        cur = conn.cursor()
+    conn.autocommit = False  # Встановлюємо ручний режим фіксації транзакції
+    cur = conn.cursor()
 
-        for delete_query in (query_4, query_5, query_6):
-            cur.execute(delete_query)
+    for delete_query in queries:
+        cur.execute(delete_query)
 
-        for file, query in zip(files, queries):
+    for file, query in zip(files, (query_1, query_2, query_3)):
+        try:
             with open(file, 'r') as f:
                 reader = csv.DictReader(f)
-
                 columns = [col.lower() for col in reader.fieldnames]
                 values = [tuple(row[col] for col in columns) for row in reader]
-
                 for data_values in values:
                     cur.execute(query, data_values)
 
-        conn.commit()
-        print("Імпорт даних успішно завершено.")
+            conn.commit()  # Фіксація транзакції для кожного файлу
+
+        except Exception as e:
+            conn.rollback()  # Відміна транзакції у випадку помилки
+            print(f"Помилка при обробці файлу {file}: {e}")
+
+    print("Імпорт даних успішно завершено.")
 
 except Exception as e:
     print(f"Помилка: {e}")
+
 finally:
-    cur.close()
-    conn.close()
+    if cur:
+        cur.close()
+    if conn:
+        conn.close()
