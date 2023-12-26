@@ -25,7 +25,6 @@ try:
     export_to_csv('Weeks', 'Weeks.csv')
     export_to_csv('Countries', 'Countries.csv')
     export_to_csv('Ratings', 'Ratings.csv')
-    export_to_csv('most_popular', 'most_popular.csv')
 
 except psycopg2.OperationalError as e:
     print(f"Unable to connect to the database. Error: {e}")
