@@ -1,59 +1,49 @@
 import psycopg2
-import numpy as np
 import matplotlib.pyplot as plt
 
+username = 'postgres'
+password = 'postgres'
+database = 'lab_3_6'
+host = 'localhost'
+port = '5432'
 
-connection_params = {
-    'user': 'postgres',
-    'password': 'postgres',
-    'dbname': 'db_lab4',
-    'host': 'localhost',
-    'port': '5432'
-}
+query_1 = '''
+--Вибрати всі фільми
+SELECT * FROM MoviesAndShows;
+'''
 
-try:
-    # Встановлення з'єднання з базою даних
-    conn = psycopg2.connect(**connection_params)
-    with conn.cursor() as cur:
-        # Створення VIEWs
-        cur.execute(create_view_1)
-        cur.execute(create_view_2)
-        cur.execute(create_view_3)
+query_2 = '''
+--Вибрати всі країни
+SELECT * FROM Countries;
+'''
 
-        # Отримання даних з VIEWs
-        cur.execute(query_1)
-        years_1, durations_1 = zip(*cur.fetchall())
+query_3 = '''
+--Вибрати всі рейтинги разом із назвою фільму/шоу та ім'ям країни
+SELECT MoviesAndShows.Title, Countries.CountryName, Ratings.Rank, Ratings.Viewership, Ratings.Duration
+FROM Ratings
+JOIN MoviesAndShows ON Ratings.MovieOrShowID = MoviesAndShows.MovieOrShowID
+JOIN Countries ON Ratings.CountryID = Countries.CountryID;
+'''
 
-        cur.execute(query_2)
-        countries, total_viewership = zip(*cur.fetchall())
+conn = psycopg2.connect(user=username, password=password, dbname=database, host=host, port=port)
 
-        cur.execute(query_3)
-        types, avg_durations = zip(*cur.fetchall())
+with conn:
+    cur = conn.cursor()
 
-    # Побудова візуалізацій
-    fig, ax = plt.subplots(1, 3, figsize=(15, 5))
+    print('Загальний рейтинг (weekly_rank) для фільму "Red Notice" за всі країни:')
+    cur.execute(query_1)
 
-    # Графік 1
-    ax[0].bar(years_1, durations_1, color='g', edgecolor='y')
-    ax[0].set_title('Середня тривалість фільмів/шоу за роками')
-    ax[0].set_xlabel('Рік')
-    ax[0].set_ylabel('Середня тривалість')
+    for row in cur:
+       print(row)
 
-    # Графік 2
-    ax[1].pie(total_viewership, labels=countries, autopct='%1.1f%%', wedgeprops={'edgecolor': 'y'})
-    ax[1].set_title('Загальна кількість переглядів за країною')
+    print('\nКількість годин перегляду для кожного фільму в Аргентині:')
+    cur.execute(query_2)
 
-    # Графік 3
-    ax[2].scatter(types, avg_durations, color='g')
-    ax[2].set_title('Середня тривалість фільмів/шоу за типом')
-    ax[2].set_xlabel('Тип')
-    ax[2].set_ylabel('Середня тривалість')
+    for row in cur:
+       print(row)
 
-    plt.show()
+    print('\nЗагальний рейтинг (weekly_rank) для фільму за всі країни:')
+    cur.execute(query_3)
 
-except psycopg2.Error as e:
-    print("Помилка підключення до бази даних:", e)
-finally:
-    # Закриття з'єднання з базою даних
-    if 'conn' in locals() and conn:
-        conn.close()
+    for row in cur:
+       print(row)
